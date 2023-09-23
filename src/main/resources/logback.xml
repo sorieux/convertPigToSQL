@@ -1,0 +1,19 @@
+<configuration>
+    <!-- Configuration par défaut pour les logs -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- Réduire la verbosité des logs pour Hadoop -->
+    <logger name="org.apache.hadoop" level="WARN" />
+
+    <logger name="io.github.sorieux.cli" level="INFO" />
+
+    <!-- Autres configurations spécifiques au logger peuvent être ajoutées ici -->
+</configuration>
