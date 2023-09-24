@@ -133,16 +133,48 @@ class CommandsTest {
     }
 
     @Test
-    void testConvertPigStringToSQLWithUDF() {
+    void testConvertPigStringToSQLWithCONCATFunction() {
         String pathToMacro = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
 
-        String pigScript = String.format("REGISTER '%s';\n" +
-                "DEFINE Concat org.apache.pig.piggybank.evaluation.string.CONCAT();\n" +
-                "data = LOAD 'input.txt' USING PigStorage(',') AS (first_name:chararray, last_name:chararray, age:int);\n" +
+        String pigScript = String.format("data = LOAD 'input.txt' USING PigStorage(',') AS (first_name:chararray, last_name:chararray, age:int);\n" +
                 "full_name_data = FOREACH data GENERATE CONCAT(first_name, last_name) AS full_name, age;\n" +
                 "STORE full_name_data INTO 'output.txt' USING PigStorage(',');\n", pathToMacro);
         String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
                 "FROM `input`.`txt`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertComplexPigString() {
+        String pathToMacro = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format("-- Load the data\n" +
+                "sales = LOAD 'sales.txt' USING PigStorage(',') AS (item_id:chararray, amount:int);\n" +
+                "items = LOAD 'items.txt' USING PigStorage(',') AS (item_id:chararray, item_name:chararray, category:chararray, price:int);\n" +
+                "\n" +
+                "-- Join sales with items on item_id\n" +
+                "joined_data = JOIN sales BY item_id, items BY item_id;\n" +
+                "\n" +
+                "-- Group by category\n" +
+                "grouped_data = GROUP joined_data BY category;\n" +
+                "\n" +
+                "-- Calculate total sales for each category\n" +
+                "sum_data = FOREACH grouped_data GENERATE group AS category, SUM(joined_data.amount) AS total_sales;\n" +
+                "\n" +
+                "-- Filter the results to only include categories with total_sales > 20\n" +
+                "filtered_data = FILTER sum_data BY total_sales > 20;\n" +
+                "\n" +
+                "-- Sort the data by total_sales in descending order\n" +
+                "sorted_data = ORDER filtered_data BY total_sales DESC;\n" +
+                "\n");
+        String expectedSQL = "SELECT `txt0`.`category`, CAST(SUM(`txt`.`amount`) AS BIGINT) AS `total_sales`\n" +
+                "FROM `sales`.`txt`\n" +
+                "    INNER JOIN `items`.`txt` AS `txt0` ON `txt`.`item_id` = `txt0`.`item_id`\n" +
+                "GROUP BY `txt0`.`category`\n" +
+                "HAVING CAST(SUM(`txt`.`amount`) AS BIGINT) > 20\n" +
+                "ORDER BY 2 DESC";
 
         String result = commands.convertPigStringToSQL(pigScript);
         assertEquals(expectedSQL, result);
