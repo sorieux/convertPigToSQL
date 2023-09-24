@@ -134,11 +134,9 @@ class CommandsTest {
 
     @Test
     void testConvertPigStringToSQLWithCONCATFunction() {
-        String pathToMacro = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
-
         String pigScript = String.format("data = LOAD 'input.txt' USING PigStorage(',') AS (first_name:chararray, last_name:chararray, age:int);\n" +
                 "full_name_data = FOREACH data GENERATE CONCAT(first_name, last_name) AS full_name, age;\n" +
-                "STORE full_name_data INTO 'output.txt' USING PigStorage(',');\n", pathToMacro);
+                "STORE full_name_data INTO 'output.txt' USING PigStorage(',');\n");
         String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
                 "FROM `input`.`txt`";
 
@@ -148,8 +146,6 @@ class CommandsTest {
 
     @Test
     void testConvertComplexPigString() {
-        String pathToMacro = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
-
         String pigScript = String.format("-- Load the data\n" +
                 "sales = LOAD 'sales.txt' USING PigStorage(',') AS (item_id:chararray, amount:int);\n" +
                 "items = LOAD 'items.txt' USING PigStorage(',') AS (item_id:chararray, item_name:chararray, category:chararray, price:int);\n" +
@@ -175,6 +171,24 @@ class CommandsTest {
                 "GROUP BY `txt0`.`category`\n" +
                 "HAVING CAST(SUM(`txt`.`amount`) AS BIGINT) > 20\n" +
                 "ORDER BY 2 DESC";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertPigStringForeach() {
+        String pigScript = String.format("students_data = LOAD 'students.txt' USING PigStorage(',') \n" +
+                "    AS (name:chararray, score:int, year_of_birth:int);\n" +
+                "\n" +
+                "students_with_status = FOREACH students_data GENERATE \n" +
+                "    name AS name:chararray, \n" +
+                "    score AS score:int, \n" +
+                "    year_of_birth AS year_of_birth:int,\n" +
+                "    2023 - year_of_birth AS age:int,\n" +
+                "    (score > 50 ? 'Passed' : 'Failed') AS status:chararray;\n");
+        String expectedSQL = "SELECT `name`, `score`, `year_of_birth`, 2023 - `year_of_birth` AS `age`, CASE WHEN `score` > 50 THEN 'Passed' ELSE 'Failed' END AS `status`\n" +
+                "FROM `students`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
         assertEquals(expectedSQL, result);
