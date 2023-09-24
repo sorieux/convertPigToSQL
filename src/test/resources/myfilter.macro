@@ -1,0 +1,4 @@
+-- myfilter.macro
+DEFINE myfilter(relvar,colvar) returns x{
+$x = filter $relvar by $colvar==15;
+};

@@ -101,6 +101,53 @@ class CommandsTest {
         deleteDirectory(Paths.get(emptyDir));
     }
 
+
+    @Test
+    void testConvertPigStringToSQLWithMacro() {
+        String pigScript = "DEFINE myfilter(relvar,colvar) returns x{\n" +
+                "$x = filter $relvar by $colvar==15;\n" +
+                "};" +
+                "emp = load '/data/employee'using PigStorage(',') as (eno,ename,sal,dno);\n" +
+                "empdno15 =myfilter( emp,dno);\n";
+        String expectedSQL = "SELECT *\n" +
+                "FROM `/data/employee`\n" +
+                "WHERE CAST(`dno` AS INTEGER) = 15";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertPigStringToSQLWithExternalMacro() {
+        String pathToMacro = Paths.get("src", "test", "resources", "myfilter.macro").toAbsolutePath().toString();
+
+        String pigScript = String.format("IMPORT '%s';\n" +
+                "emp = load '/data/employee'using PigStorage(',') as (eno,ename,sal,dno);\n" +
+                "empdno15 =myfilter( emp,dno);\n", pathToMacro);
+        String expectedSQL = "SELECT *\n" +
+                "FROM `/data/employee`\n" +
+                "WHERE CAST(`dno` AS INTEGER) = 15";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertPigStringToSQLWithUDF() {
+        String pathToMacro = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format("REGISTER '%s';\n" +
+                "DEFINE Concat org.apache.pig.piggybank.evaluation.string.CONCAT();\n" +
+                "data = LOAD 'input.txt' USING PigStorage(',') AS (first_name:chararray, last_name:chararray, age:int);\n" +
+                "full_name_data = FOREACH data GENERATE CONCAT(first_name, last_name) AS full_name, age;\n" +
+                "STORE full_name_data INTO 'output.txt' USING PigStorage(',');\n", pathToMacro);
+        String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
+                "FROM `input`.`txt`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
     private void deleteIfExists(Path path) throws IOException {
         if (Files.exists(path)) {
             Files.delete(path);
