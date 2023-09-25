@@ -45,7 +45,7 @@ This will produce a JAR file in the build/libs directory with a name like conver
 Before running the `pigToSql` batch file on UNIX-based systems, you may need to give it execute permissions. You can do this with the following command:
 
 ```
-chmod +x pigToSql
+chmod +x pigtosql
 ```
 
 This ensures that the batch file can be run as an executable script.
