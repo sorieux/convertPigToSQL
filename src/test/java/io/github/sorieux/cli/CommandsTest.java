@@ -27,6 +27,8 @@ class CommandsTest {
             "ORDER BY 2 DESC\n" +
             "FETCH NEXT 5 ROWS ONLY";
 
+    String expectedSQLTestPigUdf = "toto";
+
     @BeforeEach
     void setUp() {
         commands = new Commands();
@@ -189,6 +191,22 @@ class CommandsTest {
                 "    (score > 50 ? 'Passed' : 'Failed') AS status:chararray;\n");
         String expectedSQL = "SELECT `name`, `score`, `year_of_birth`, 2023 - `year_of_birth` AS `age`, CASE WHEN `score` > 50 THEN 'Passed' ELSE 'Failed' END AS `status`\n" +
                 "FROM `students`.`txt`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertPigStringToSQLWithUDF() {
+        String pathToUdf = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format("REGISTER '%s';\n" +
+                "DEFINE Upper org.apache.pig.piggybank.evaluation.string.UPPER();\n" +
+                "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
+                "uppercased_data = FOREACH data GENERATE Upper(name) AS upper_name, age;\n" +
+                "STORE uppercased_data INTO 'output.txt' USING PigStorage(',');\n", pathToUdf);
+        String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
+                "FROM `input`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
         assertEquals(expectedSQL, result);
