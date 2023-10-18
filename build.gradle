@@ -3,6 +3,11 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
+java {
+    sourceCompatibility = 19
+    targetCompatibility = 19
+}
+
 
 group = 'io.github.sorieux'
 version = '1.0'
@@ -17,6 +22,7 @@ dependencies {
     implementation 'org.apache.calcite:calcite-piglet:1.35.0'
     implementation 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.1'
     implementation 'org.apache.hadoop:hadoop-common:3.3.1'
+    implementation 'org.apache.pig:piggybank:0.16.0'
     implementation 'info.picocli:picocli:4.7.5'
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.11'

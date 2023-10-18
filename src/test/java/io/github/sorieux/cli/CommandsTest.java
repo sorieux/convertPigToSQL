@@ -205,12 +205,30 @@ class CommandsTest {
                 "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
                 "uppercased_data = FOREACH data GENERATE Upper(name) AS upper_name, age;\n" +
                 "STORE uppercased_data INTO 'output.txt' USING PigStorage(',');\n", pathToUdf);
-        String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
-                "FROM `input`.`txt`";
+        String expectedSQL = "SELECT UPPER(`PIG_TUPLE`(`name`)) AS `upper_name`, `age`\n" +
+                "FROM `data`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
         assertEquals(expectedSQL, result);
     }
+
+    @Test
+    void testConvertPigStringToSQLWithSubstringUDF() {
+        String pathToUdf = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format("REGISTER '%s';\n" +
+                "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
+                "sub_string_data = FOREACH data GENERATE org.apache.pig.piggybank.evaluation.string.SUBSTRING(name, 0, 3) AS short_name, age;\n" +
+                "STORE sub_string_data INTO 'output.txt' USING PigStorage(',');\n", pathToUdf);
+
+        String expectedSQL = "SELECT SUBSTRING(`PIG_TUPLE`(`name`, 0, 3)) AS `short_name`, `age`\n" +
+                "FROM `data`.`txt`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+
 
     private void deleteIfExists(Path path) throws IOException {
         if (Files.exists(path)) {

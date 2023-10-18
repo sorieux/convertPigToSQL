@@ -39,7 +39,6 @@ public class Commands implements Runnable {
     // Configuration for the Calcite framework
     private final FrameworkConfig config = Frameworks.newConfigBuilder()
             .parserConfig(SqlParser.Config.DEFAULT)
-            .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2))
             .build();
 
     // Setting the SQL dialect to ANSI
