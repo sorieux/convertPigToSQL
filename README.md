@@ -87,7 +87,6 @@ java -jar path_to_your_jar.jar [options]
 
 Replace path_to_your_jar.jar with the path to your built JAR file (build/libs), and [options] with the appropriate command-line options as mentioned above.
 
-
 ## Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request.

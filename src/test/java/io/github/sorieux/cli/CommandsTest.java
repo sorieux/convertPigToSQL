@@ -64,6 +64,19 @@ class CommandsTest {
     }
 
     @Test
+    void testConvertPigFileToSQL2() throws IOException {
+        String inputFilePath = Paths.get(BASE_DIR, "pig_script_join_multi_store.pig").toString();
+        String outputFilePath = Paths.get(BASE_DIR, "pig_script_join_multi_store.sql").toString();
+
+        commands.convertPigFileToSQL(inputFilePath, outputFilePath);
+        String result = new String(Files.readAllBytes(Paths.get(outputFilePath)), StandardCharsets.UTF_8);
+        assertEquals(expectedSQLTestPig, result);
+
+        // Cleanup after this test
+        deleteIfExists(Paths.get(outputFilePath));
+    }
+
+    @Test
     void testConvertPigDirectoryToSQL() throws IOException {
         String inputDirectoryPath = BASE_DIR;
         String outputDirectoryPath = Paths.get(BASE_DIR, "/tmp").toString();
@@ -200,7 +213,7 @@ class CommandsTest {
     void testConvertPigStringToSQLWithUDF() {
         String pathToUdf = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
 
-        String pigScript = String.format("REGISTER '%s';\n" +
+        String pigScript = String.format("REGISTER '/home/Stephane.Orieux/Clones/github.com/sorieux/convertPigToSQL/src/test/resources/piggybank-0.17.0.jar';\n" +
                 "DEFINE Upper org.apache.pig.piggybank.evaluation.string.UPPER();\n" +
                 "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
                 "uppercased_data = FOREACH data GENERATE Upper(name) AS upper_name, age;\n" +

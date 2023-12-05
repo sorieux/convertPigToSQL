@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.piglet.PigConverter.create;
@@ -89,33 +90,22 @@ public class Commands implements Runnable {
     }
 
     /**
-     * Converts a given Pig script string to SQL.
+     * Converts a list of RelNodes to a SQL string.
      *
-     * @param pig The Pig script string.
-     * @return The converted SQL string.
+     * @param relNodes The list of RelNodes to be converted.
+     * @return The resulting SQL string.
      */
-    protected String convertPigStringToSQL(String pig) {
-        String sql;
-        logger.debug("Pig String : {}", pig);
+    protected String convertRelNodesToSQL(List<RelNode> relNodes) {
+        StringBuilder sqlBuilder = new StringBuilder();
+        RelToSqlConverter converter2Sql = new RelToSqlConverter(dialect);
 
-        try {
-            // Convert Pig script to Relational Algebra
-            PigConverter converter2Rel = create(config);
-            RelNode rel = converter2Rel.pigQuery2Rel(pig).get(0);
-
-            // Convert Relational Algebra to SQL
-            RelToSqlConverter converter2Sql = new RelToSqlConverter(dialect);
+        for (RelNode rel : relNodes) {
             SqlNode sqlNode = converter2Sql.visitRoot(rel).asStatement();
-
             SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
-            sql = writer.format(sqlNode);
-        } catch (Exception e) {
-            throw new RuntimeException("Error converting Pig string to SQL.", e);
+            sqlBuilder.append(writer.format(sqlNode)).append("\n\n"); // Add line breaks between queries
         }
 
-        logger.debug("Sql result : {}", sql);
-
-        return sql;
+        return sqlBuilder.toString();
     }
 
     /**
@@ -129,25 +119,17 @@ public class Commands implements Runnable {
             logger.debug("inputFile : {}", inputFile);
             logger.debug("outputFile : {}", outputFile);
 
-
             Map<String, String> params = new HashMap<>();
             params.put("input", inputFile);
             params.put("output", "outputFile");
 
-            // Convert Pig script to Relational Algebra
             PigConverter converter2Rel = create(config);
-            RelNode rel = converter2Rel.pigScript2Rel(inputFile, params, true).get(0);
+            List<RelNode> relList = converter2Rel.pigScript2Rel(inputFile, params, true);
 
-            // Convert Relational Algebra to SQL
-            RelToSqlConverter converter2Sql = new RelToSqlConverter(dialect);
-            SqlNode sqlNode = converter2Sql.visitRoot(rel).asStatement();
-
-            SqlPrettyWriter sqlWriter = new SqlPrettyWriter(dialect);
-            String sql = sqlWriter.format(sqlNode);
+            String sql = convertRelNodesToSQL(relList);
 
             logger.debug("Sql result : {}", sql);
 
-            // Save the converted SQL to the output file
             try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(outputFile))) {
                 outputWriter.write(sql);
             }
@@ -155,6 +137,32 @@ public class Commands implements Runnable {
             throw new RuntimeException("Error converting Pig file to SQL.", e);
         }
     }
+
+    /**
+     * Converts a given Pig script string to SQL.
+     *
+     * @param pig The Pig script string.
+     * @return The converted SQL string.
+     */
+    protected String convertPigStringToSQL(String pig) {
+        String sql;
+        logger.debug("Pig String : {}", pig);
+
+        try {
+            PigConverter converter2Rel = create(config);
+            List<RelNode> relList = converter2Rel.pigQuery2Rel(pig);
+
+            sql = convertRelNodesToSQL(relList);
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting Pig string to SQL.", e);
+        }
+
+        logger.debug("Sql result : {}", sql);
+
+        return sql;
+    }
+
+
 
     /**
      * Converts all Pig files in a given directory to SQL and saves them in a specified output directory.
