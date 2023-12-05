@@ -211,19 +211,55 @@ class CommandsTest {
 
     @Test
     void testConvertPigStringToSQLWithUDF() {
-        String pathToUdf = Paths.get("src", "test", "resources", "piggybank-0.17.0.jar").toAbsolutePath().toString();
+        String pathToUdf = Paths.get("libs", "piggybank-0.16.0.jar").toAbsolutePath().toString();
 
         String pigScript = String.format("REGISTER '/home/Stephane.Orieux/Clones/github.com/sorieux/convertPigToSQL/src/test/resources/piggybank-0.17.0.jar';\n" +
                 "DEFINE Upper org.apache.pig.piggybank.evaluation.string.UPPER();\n" +
                 "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
                 "uppercased_data = FOREACH data GENERATE Upper(name) AS upper_name, age;\n" +
                 "STORE uppercased_data INTO 'output.txt' USING PigStorage(',');\n", pathToUdf);
-        String expectedSQL = "SELECT `first_name` || `last_name` AS `full_name`, `age`\n" +
-                "FROM `input`.`txt`";
+        String expectedSQL = "SELECT UPPER(`PIG_TUPLE`(`name`)) AS `upper_name`, `age`\n" +
+                "FROM `data`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
         assertEquals(expectedSQL, result);
     }
+
+    @Test
+    void testConvertPigStringToSQLWithSubstringUDF() {
+        String pathToUdf = Paths.get("libs", "piggybank-0.16.0.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format("REGISTER '%s';\n" +
+                "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
+                "sub_string_data = FOREACH data GENERATE org.apache.pig.piggybank.evaluation.string.SUBSTRING(name, 0, 3) AS short_name, age;\n" +
+                "STORE sub_string_data INTO 'output.txt' USING PigStorage(',');\n", pathToUdf);
+
+        String expectedSQL = "SELECT SUBSTRING(`PIG_TUPLE`(`name`, 0, 3)) AS `short_name`, `age`\n" +
+                "FROM `data`.`txt`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
+    @Test
+    void testConvertPigStringToSQLWithSHAUDF() {
+        String pathToDataFu = Paths.get("libs", "datafu-pig-1.6.1.jar").toAbsolutePath().toString();
+
+        String pigScript = String.format(
+                "REGISTER '%s';\n" +
+                        "define SHA datafu.pig.hash.SHA();\n" +
+                        "data_in = LOAD 'input' as (val:chararray);\n" +
+                        "data_out = FOREACH data_in GENERATE SHA(val) as val;\n",
+                pathToDataFu
+        );
+
+        String expectedSQL = "SELECT `SHA`(`PIG_TUPLE`(`val`)) AS `val`\n" +
+                "FROM `input`";
+
+        String result = commands.convertPigStringToSQL(pigScript);
+        assertEquals(expectedSQL, result);
+    }
+
 
     private void deleteIfExists(Path path) throws IOException {
         if (Files.exists(path)) {

@@ -3,12 +3,20 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
+java {
+    sourceCompatibility = 19
+    targetCompatibility = 19
+}
+
 
 group = 'io.github.sorieux'
 version = '1.0'
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://repository.apache.org/content/groups/public/"
+    }
 }
 
 dependencies {
@@ -20,7 +28,27 @@ dependencies {
     implementation 'info.picocli:picocli:4.7.5'
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.11'
+
+    implementation 'org.apache.pig:piggybank:0.16.0'
+    implementation 'org.apache.datafu:datafu-pig:1.6.1'
+    implementation 'org.apache.commons:commons-math:2.2'
+
+
 }
+
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'libs'
+    include '**/datafu-*.jar'
+    include '**/piggybank-*.jar'
+    onlyIf {
+        // Check if JARs exist
+        !file('libs/datafu-*.jar').exists() || !file('libs/piggybank-*.jar').exists()
+    }
+}
+
+// Run copyDependencies before Java compilation if needed
+compileJava.dependsOn(copyDependencies)
 
 jar {
     manifest {
