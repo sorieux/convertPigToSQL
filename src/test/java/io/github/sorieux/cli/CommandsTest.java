@@ -27,6 +27,19 @@ class CommandsTest {
             "ORDER BY 2 DESC\n" +
             "FETCH NEXT 5 ROWS ONLY";
 
+
+    String expectedSQLTestPig2 = "SELECT `date`, CAST(SUM(`amount`) AS DOUBLE) AS `totalSales`\n" +
+            "FROM `transactions`.`csv`\n" +
+            "WHERE `category` = 'Electronique'\n" +
+            "GROUP BY `date`\n" +
+            "\n" +
+            "SELECT `csv1`.`city`, CAST(SUM(`csv0`.`amount`) AS DOUBLE) AS `totalCitySales`\n" +
+            "FROM `transactions`.`csv` AS `csv0`\n" +
+            "    INNER JOIN `customers`.`csv` AS `csv1` ON `csv0`.`id` = `csv1`.`id`\n" +
+            "WHERE `csv0`.`amount` > 100\n" +
+            "GROUP BY `csv1`.`city`\n" +
+            "ORDER BY 2 DESC";
+
     String expectedSQLTestPigUdf = "toto";
 
     @BeforeEach
@@ -47,7 +60,7 @@ class CommandsTest {
                 "GROUP BY `name`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -57,7 +70,7 @@ class CommandsTest {
 
         commands.convertPigFileToSQL(inputFilePath, outputFilePath);
         String result = new String(Files.readAllBytes(Paths.get(outputFilePath)), StandardCharsets.UTF_8);
-        assertEquals(expectedSQLTestPig, result);
+        assertEquals(expectedSQLTestPig, result.trim());
 
         // Cleanup after this test
         deleteIfExists(Paths.get(outputFilePath));
@@ -70,7 +83,7 @@ class CommandsTest {
 
         commands.convertPigFileToSQL(inputFilePath, outputFilePath);
         String result = new String(Files.readAllBytes(Paths.get(outputFilePath)), StandardCharsets.UTF_8);
-        assertEquals(expectedSQLTestPig, result);
+        assertEquals(expectedSQLTestPig2, result.trim());
 
         // Cleanup after this test
         deleteIfExists(Paths.get(outputFilePath));
@@ -129,7 +142,7 @@ class CommandsTest {
                 "WHERE CAST(`dno` AS INTEGER) = 15";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -144,7 +157,7 @@ class CommandsTest {
                 "WHERE CAST(`dno` AS INTEGER) = 15";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -156,7 +169,7 @@ class CommandsTest {
                 "FROM `input`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -188,7 +201,7 @@ class CommandsTest {
                 "ORDER BY 2 DESC";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -206,14 +219,14 @@ class CommandsTest {
                 "FROM `students`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
     void testConvertPigStringToSQLWithUDF() {
         String pathToUdf = Paths.get("libs", "piggybank-0.16.0.jar").toAbsolutePath().toString();
 
-        String pigScript = String.format("REGISTER '/home/Stephane.Orieux/Clones/github.com/sorieux/convertPigToSQL/src/test/resources/piggybank-0.17.0.jar';\n" +
+        String pigScript = String.format("REGISTER 'libs/piggybank-0.16.0.jar';\n" +
                 "DEFINE Upper org.apache.pig.piggybank.evaluation.string.UPPER();\n" +
                 "data = LOAD 'data.txt' USING PigStorage(',') AS (name:chararray, age:int);\n" +
                 "uppercased_data = FOREACH data GENERATE Upper(name) AS upper_name, age;\n" +
@@ -222,7 +235,7 @@ class CommandsTest {
                 "FROM `data`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -238,7 +251,7 @@ class CommandsTest {
                 "FROM `data`.`txt`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
     @Test
@@ -257,7 +270,7 @@ class CommandsTest {
                 "FROM `input`";
 
         String result = commands.convertPigStringToSQL(pigScript);
-        assertEquals(expectedSQL, result);
+        assertEquals(expectedSQL, result.trim());
     }
 
 

@@ -3,12 +3,6 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
-java {
-    sourceCompatibility = 19
-    targetCompatibility = 19
-}
-
-
 group = 'io.github.sorieux'
 version = '1.0'
 
